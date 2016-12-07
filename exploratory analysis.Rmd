@@ -1,0 +1,204 @@
+---
+title: "exploratory analysis"
+author: "Andy Cox"
+date: "02/12/2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Text Exploration
+
+Two linraries are needed for this analysus stingi and ggplot2.
+
+```{r}
+#character string analysis
+library(stringi)
+#plotting
+library(ggplot2)
+#Text analysis 
+library(tm)
+```
+
+# Abstract
+Exploration of three US English text files found online.
+
+
+
+# Introduction
+In this report we look at three corpora of US English text, a set of internet blogs posts, a set of internet news articles, and a set of twitter messages.
+en_US.news.txt
+en_blogs.txt
+en_US.twitter.txt
+
+We collect the following forms of information:
+
+ 1. file size
+ 2. number of lines
+ 3. number of words
+ 4. number of non-empty lines
+ 5. number of characters
+ 6. number of non-white characters
+ 7. distribution of words 
+
+# Data
+The data is available as a [ZIP compressed archive](http://en.wikipedia.org/wiki/Zip_(file_format)), which is  downloadable from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).
+
+```{r}
+setwd()
+# specify the source and destination of the download
+destination_file <- "Coursera-SwiftKey.zip"
+source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+
+# execute the download
+download.file(source_file, destination_file)
+# extract the files from the zip file
+unzip(destination_file)
+```
+
+Inspect the unzipped files
+
+```{r}
+# find out which files where unzipped
+unzip(destination_file, list = TRUE )
+```
+
+
+
+```{r}
+# inspect the data
+list.files("final")
+list.files("final/en_US")
+```
+
+
+The corpora are contained in three separate plain-text files,
+out of which one is binary
+Import the files as follows.
+
+```{r}
+# import the blogs and twitter datasets in text mode
+blogs <- readLines("final/en_US/en_US.blogs.txt", encoding="UTF-8")
+twitter <- readLines("final/en_US/en_US.twitter.txt", encoding="UTF-8")
+```
+
+
+```{r}
+# import the news dataset in binary mode
+con <- file("final/en_US/en_US.news.txt", open="rb")
+news <- readLines(con, encoding="UTF-8")
+close(con)
+rm(con)
+```
+
+
+# Basic Dimsions of the data sources
+
+Determine the size of the files (presented in MegaBytes / MBs).
+
+```{r}
+# file size (in MegaBytes/MB)
+paste0("File en_US.blogs.txt is ",round(file.info("final/en_US/en_US.blogs.txt")$size   / 1024^2,1), " Megabytes")
+```
+
+
+
+```{r}
+paste0("File en_US.news.txt is ",round(file.info("final/en_US/en_US.news.txt")$size   / 1024^2,1), " Megabytes")
+```
+
+
+```{r}
+paste0("File en_US.blogs.txt is ",round(file.info("final/en_US/en_US.twitter.txt")$size   / 1024^2,1), " Megabytes")
+```
+
+
+We analyse the lines and characters.
+
+```{r}
+stri_stats_general( blogs )
+
+stri_stats_general( news )
+
+stri_stats_general( twitter )
+```
+
+xxxxxxxxxxxx
+
+Next we count the words per item (line). We summarise the distibution of these counts per corpus, using summary statistics and a distibution plot. we start with the **blogs** corpus.
+
+```{r}
+words_blogs   <- stri_count_words(blogs)
+summary( words_blogs )
+
+qplot(   words_blogs,binwidth=10, xlim=c(0,300) )
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-7-1.png) 
+
+Next we analys the **news** corpus.
+
+```r
+words_news    <- stri_count_words(news)
+summary( words_news )
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    1.00   19.00   32.00   34.41   46.00 1796.00
+```
+
+```r
+qplot(   words_news )
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-8-1.png) 
+
+Finally we analyse the **twitter** corpus.
+
+```r
+words_twitter <- stri_count_words(twitter)
+summary( words_twitter )
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##    1.00    7.00   12.00   12.75   18.00   47.00
+```
+
+```r
+qplot(   words_twitter )
+```
+
+```
+## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
+```
+
+![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-9-1.png) 
+
+# Conclusions
+We analyse three corpora of US english text. The file sizes are around 200 MegaBytes (MBs) per file.
+
+We find that the **blogs** and **news** corpora consist of about 1 million items each,
+and the *twitter** corpus consist of over 2 million items.
+Twitter messages have a character limit of 140 (with exceptions for links),
+this explains why there are some many more items for a corpus of about the same size.
+
+This result is further supported by the fact that the number of characters is similar for all three corpora (around 200 million each).
+
+Finally we find that the frequency distributions of the **blogs** and **news ** corpora are similar (appearing to be log-normal).
+The frequency distribution of the **twitter** corpus is again different, as a result of the character limit.
+
+
+# References
+
