@@ -125,7 +125,7 @@ stri_stats_general( news )
 stri_stats_general( twitter )
 ```
 
-xxxxxxxxxxxx
+
 
 Next we count the words per item (line). We summarise the distibution of these counts per corpus, using summary statistics and a distibution plot. we start with the **blogs** corpus.
 
@@ -134,57 +134,122 @@ words_blogs   <- stri_count_words(blogs)
 summary( words_blogs )
 
 qplot(   words_blogs,binwidth=10, xlim=c(0,300) )
-```
 
-```
-## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
-```
 
-![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-7-1.png) 
-
-Next we analys the **news** corpus.
-
-```r
 words_news    <- stri_count_words(news)
 summary( words_news )
-```
 
-```
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    1.00   19.00   32.00   34.41   46.00 1796.00
-```
+qplot(   words_news,binwidth=10, xlim=c(0,200)  )
 
-```r
-qplot(   words_news )
-```
-
-```
-## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
-```
-
-![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-8-1.png) 
-
-Finally we analyse the **twitter** corpus.
-
-```r
 words_twitter <- stri_count_words(twitter)
 summary( words_twitter )
-```
 
-```
-##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-##    1.00    7.00   12.00   12.75   18.00   47.00
-```
-
-```r
 qplot(   words_twitter )
+
+#clean up workspace
+rm(list=ls())
 ```
 
-```
-## stat_bin: binwidth defaulted to range/30. Use 'binwidth = x' to adjust this.
-```
+#Data Capstone Exploration, more detailed questions
 
-![](./Online-Text-Exploration_files/figure-html/unnamed-chunk-9-1.png) 
+
+
+1. Clean the data from punctuation, stopwords and numbers
+2. what are the distributions of word frequencies?
+3. What are the frequencies of 2-grams and 3-grams in the dataset?
+4. How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 90%?
+5. How do you evaluate how many of the words come from foreign languages?
+6. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
+
+#Analyses
+1. Clean the data from punctuation, stopwords and numbers
+
+```{r}
+
+# load dataset
+
+
+#Create some sample files to work wiht more quickly
+library(LaF)
+
+blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 100, nlines = NULL)
+
+news1<-sample_lines("final/en_US/en_US.news.txt", 100, nlines = NULL)
+
+twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 100, nlines = NULL)
+
+if(!(dir.exists("final/en_US/sample"))){
+    dir.create("final/en_US/sample")
+
+    write(blogs1, file = "final/en_US/sample/en_US.blogs_sample.txt",append = FALSE, sep = "/t")
+    write(news1, file = "final/en_US/sample/en_US.news_sample.txt",append = FALSE, sep = "/t")
+    write(twitter1, file = "final/en_US/sample/en_US.twitter_sample.txt",append = FALSE, sep = "/t")
+    rm(list=c("blogs1","news1","twitter1"))
+}
+
+folder.dataset.english <- 'final/en_US/sample'
+corpus <- VCorpus(DirSource(directory=folder.dataset.english, encoding = "UTF-8"),  readerControl = list(language = "en"))
+
+
+# remove URLs
+toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+corpus <- tm_map(corpus, toSpace, "(f|ht)tp(s?)://(.*)[.][a-z]+")
+
+# remove RTs and vias (mostly from tweets)
+toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+corpus <- tm_map(corpus, toSpace, "RT |via ")
+
+# replace twitter account names by space
+toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+corpus <- tm_map(corpus, toSpace, "@[^\\s]+")
+
+
+# to lower case
+corpus <- tm_map(corpus, content_transformer(tolower))
+
+# common text cleaning steps
+getTransformations()
+# remove stopwords
+corpus <- tm_map(corpus, removeWords, stopwords("english"))
+
+# remove numbers
+corpus <- tm_map(corpus, removeNumbers)
+
+# remove punctuation
+corpus <- tm_map(corpus, removePunctuation)
+
+# filter profanity
+
+# http://www.frontgatemedia.com/a-list-of-723-bad-words-to-blacklist-and-how-to-use-facebooks-moderation-tool/
+terms.to.block <- read.csv(file ='dictionaries/Terms-to-Block.csv', stringsAsFactors=F, skip=3)
+
+terms.to.block <- terms.to.block[,2]
+terms.to.block <- unlist(gsub(",", "", terms.to.block))
+profanity.filter <- terms.to.block
+
+# filter profanity
+corpus <- tm_map(corpus, removeWords, profanity.filter)
+
+# remove double whitespaces
+corpus <- tm_map(corpus, stripWhitespace)
+
+# blogs
+blogs.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[1]]$content)))
+blogs.dtms <- removeSparseTerms(blogs.dtm , 0.999)
+blogs.freq <- sort(colSums(as.matrix(blogs.dtms)), decreasing=TRUE)
+
+# news
+news.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[2]]$content)))
+news.dtms <- removeSparseTerms(news.dtm, 0.999)
+news.freq <- sort(colSums(as.matrix(news.dtms)), decreasing=TRUE)
+
+# twitter
+twitter.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[3]]$content)))
+twitter.dtms <- removeSparseTerms(twitter.dtm , 0.999)
+twitter.freq <- sort(colSums(as.matrix(twitter.dtms)), decreasing=TRUE)
+
+
+```
 
 # Conclusions
 We analyse three corpora of US english text. The file sizes are around 200 MegaBytes (MBs) per file.
