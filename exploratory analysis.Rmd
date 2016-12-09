@@ -161,8 +161,7 @@ rm(list=ls())
 5. How do you evaluate how many of the words come from foreign languages?
 6. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
 
-#Analyses
-1. Clean the data from punctuation, stopwords and numbers
+
 
 ```{r}
 
@@ -189,7 +188,11 @@ if(!(dir.exists("final/en_US/sample"))){
 
 folder.dataset.english <- 'final/en_US/sample'
 corpus <- VCorpus(DirSource(directory=folder.dataset.english, encoding = "UTF-8"),  readerControl = list(language = "en"))
+```
+1. Clean the data from punctuation, stopwords and numbers
 
+```{r}
+#Analyses
 
 # remove URLs
 toSpace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
@@ -227,27 +230,92 @@ terms.to.block <- terms.to.block[,2]
 terms.to.block <- unlist(gsub(",", "", terms.to.block))
 profanity.filter <- terms.to.block
 
-# filter profanity
 corpus <- tm_map(corpus, removeWords, profanity.filter)
 
 # remove double whitespaces
 corpus <- tm_map(corpus, stripWhitespace)
+```
 
-# blogs
-blogs.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[1]]$content)))
-blogs.dtms <- removeSparseTerms(blogs.dtm , 0.999)
-blogs.freq <- sort(colSums(as.matrix(blogs.dtms)), decreasing=TRUE)
+2. what are the distributions of word frequencies?
 
-# news
-news.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[2]]$content)))
-news.dtms <- removeSparseTerms(news.dtm, 0.999)
-news.freq <- sort(colSums(as.matrix(news.dtms)), decreasing=TRUE)
+```{r}
 
-# twitter
-twitter.dtm <- DocumentTermMatrix(VCorpus(VectorSource(corpus[[3]]$content)))
-twitter.dtms <- removeSparseTerms(twitter.dtm , 0.999)
-twitter.freq <- sort(colSums(as.matrix(twitter.dtms)), decreasing=TRUE)
 
+```
+
+
+
+3. What are the frequencies of 2-grams and 3-grams in the dataset?
+
+```{r}
+#clean up
+rm(list=ls())
+
+#Thought I would try out the quantida package to see how it goes
+library(quanteda)
+folder.dataset.english <- 'final/en_US/sample'
+
+# vector of full filenames for a recursive structure
+x<-textfile(list.files(path = folder.dataset.english, pattern = "\\.txt$", 
+                    full.names = TRUE, recursive = TRUE))
+
+myCorpus <- corpus(x=x)  # build the corpus
+myCorpus<-toLower(myCorpus, keepAcronyms = TRUE)
+summary(myCorpus)
+
+myCorpus1<-tokenize(myCorpus, removeNumbers=TRUE, removePunct = TRUE,
+  removeSymbols = TRUE, removeSeparators = TRUE, removeTwitter = TRUE,
+  removeHyphens = FALSE, removeURL = TRUE, ngrams = 1L, skip = 0L,
+  concatenator = "_", simplify = FALSE, verbose = T)
+
+
+mydfm <- dfm(myCorpus1, ngrams=1,ignoredFeatures = c("the", stopwords("english")))
+
+#Most frequenct words
+wds<-dfm(myCorpus, ngrams = 1, verbose = TRUE, toLower = TRUE,
+  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english"))
+wds<-topfeatures(wds, 30)
+wds<-data.frame(cbind(names(wds),wds),stringsAsFactors =FALSE)
+rownames(wds)<-NULL
+colnames(wds)<-c("word","freq")
+wds$freq<-as.numeric(wds$freq)
+
+ggplot(wds, aes(reorder(word, freq),freq)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Words") + ylab("Frequency") +
+  ggtitle("Most frequent Words")
+
+#bigrams
+bigrams<-dfm(myCorpus, ngrams = 2,verbose = TRUE, toLower = TRUE,
+  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) ignoredFeatures=stopwords("english"))
+bigrams<-topfeatures(bigrams, 30)
+bigrams<-data.frame(cbind(names(bigrams),bigrams),stringsAsFactors =FALSE)
+rownames(bigrams)<-NULL
+colnames(bigrams)<-c("word","freq")
+bigrams$freq<-as.numeric(bigrams$freq)
+
+ggplot(bigrams, aes(reorder(word,freq), freq)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Bigrams") + ylab("Frequency") +
+  ggtitle("Most frequent bigrams")
+
+
+#trigrams
+trigrams<-dfm(myCorpus, ngrams = 3,verbose = TRUE, toLower = TRUE,
+  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) 
+trigrams<-topfeatures(trigrams, 30) 
+trigrams<-data.frame(cbind(names(trigrams),trigrams),stringsAsFactors =FALSE)
+rownames(trigrams)<-NULL
+colnames(trigrams)<-c("word","freq")
+trigrams$freq<-as.numeric(trigrams$freq)
+
+ggplot(trigrams, aes(reorder(word,freq), freq)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Trigrams") + ylab("Frequency") +
+  ggtitle("Most frequent trigrams")
 
 ```
 
