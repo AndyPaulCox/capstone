@@ -20,6 +20,9 @@ library(stringi)
 library(ggplot2)
 #Text analysis 
 library(tm)
+#Wordcloud
+library(wordcloud)
+
 ```
 
 # Abstract
@@ -47,30 +50,30 @@ We collect the following forms of information:
 The data is available as a [ZIP compressed archive](http://en.wikipedia.org/wiki/Zip_(file_format)), which is  downloadable from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).
 
 ```{r}
-setwd()
-# specify the source and destination of the download
-destination_file <- "Coursera-SwiftKey.zip"
-source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
-
-# execute the download
-download.file(source_file, destination_file)
-# extract the files from the zip file
-unzip(destination_file)
+# setwd()
+# # specify the source and destination of the download
+# destination_file <- "Coursera-SwiftKey.zip"
+# source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+# 
+# # execute the download
+# download.file(source_file, destination_file)
+# # extract the files from the zip file
+# unzip(destination_file)
 ```
 
 Inspect the unzipped files
 
 ```{r}
 # find out which files where unzipped
-unzip(destination_file, list = TRUE )
+# unzip(destination_file, list = TRUE )
 ```
 
 
 
 ```{r}
 # inspect the data
-list.files("final")
-list.files("final/en_US")
+# list.files("final")
+# list.files("final/en_US")
 ```
 
 
@@ -275,6 +278,7 @@ mydfm <- dfm(myCorpus1, ngrams=1,ignoredFeatures = c("the", stopwords("english")
 wds<-dfm(myCorpus, ngrams = 1, verbose = TRUE, toLower = TRUE,
   removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
   removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english"))
+allwds_freq<-sort(colSums(wds),decreasing=T)
 wds<-topfeatures(wds, 30)
 wds<-data.frame(cbind(names(wds),wds),stringsAsFactors =FALSE)
 rownames(wds)<-NULL
@@ -286,10 +290,13 @@ ggplot(wds, aes(reorder(word, freq),freq)) +
   xlab("Words") + ylab("Frequency") +
   ggtitle("Most frequent Words")
 
+
+wordcloud(wds$word,wds$freq,max.words=50,rot.per=.3,colors=brewer.pal(8,"Dark2"))
+
 #bigrams
 bigrams<-dfm(myCorpus, ngrams = 2,verbose = TRUE, toLower = TRUE,
   removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) ignoredFeatures=stopwords("english"))
+  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) 
 bigrams<-topfeatures(bigrams, 30)
 bigrams<-data.frame(cbind(names(bigrams),bigrams),stringsAsFactors =FALSE)
 rownames(bigrams)<-NULL
@@ -319,19 +326,39 @@ ggplot(trigrams, aes(reorder(word,freq), freq)) +
 
 ```
 
+How many unique words do you need in a frequency sorted dictionary to cover 50% of all word instances in the language? 
+
+```{r}
+
+target1<-ceiling(sum(allwds_freq)*0.5)
+
+for(i in 1:length(allwds_freq)){
+sm<-sum(allwds_freq[1:i])
+if(sm>=target1)break
+}
+
+paste0("Number of unique words needed to cover 90% of all words = ",i)
+
+#Now for 90% of all word instances
+target1<-ceiling(sum(allwds_freq)*0.9)
+
+for(i in 1:length(allwds_freq)){
+sm<-sum(allwds_freq[1:i])
+if(sm>=target1)break
+}
+
+paste0("Number of unique words needed to cover 90% of all words = ",i)
+```
+
+
+#How do you evaluate how many of the words come from foreign languages?
+
+You could use and english dictionary to only include words from that language, similarly for other langauges
+
+#Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using #a smaller number of words in the dictionary to cover the same number of phrases?
+
+Can correct common typos, misspellings and abreviations, could also use word stemming to reduce the number of unique words
+
+
 # Conclusions
-We analyse three corpora of US english text. The file sizes are around 200 MegaBytes (MBs) per file.
-
-We find that the **blogs** and **news** corpora consist of about 1 million items each,
-and the *twitter** corpus consist of over 2 million items.
-Twitter messages have a character limit of 140 (with exceptions for links),
-this explains why there are some many more items for a corpus of about the same size.
-
-This result is further supported by the fact that the number of characters is similar for all three corpora (around 200 million each).
-
-Finally we find that the frequency distributions of the **blogs** and **news ** corpora are similar (appearing to be log-normal).
-The frequency distribution of the **twitter** corpus is again different, as a result of the character limit.
-
-
-# References
 
