@@ -9,11 +9,11 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Text Exploration
-
-Two linraries are needed for this analysus stingi and ggplot2.
-
+# Text Exploration blog, tweet and news text
+Four libraries are needed for this analysus
+I will also try out the quantida package fro text analysis
 ```{r}
+#Load Libraries
 #character string analysis
 library(stringi)
 #plotting
@@ -22,16 +22,14 @@ library(ggplot2)
 library(tm)
 #Wordcloud
 library(wordcloud)
-
+#Fast access to large asci files package
+library(LaF)
+#Trying out the quanitda package
+library(quanteda)
 ```
 
-# Abstract
-Exploration of three US English text files found online.
-
-
-
 # Introduction
-In this report we look at three corpora of US English text, a set of internet blogs posts, a set of internet news articles, and a set of twitter messages.
+We will look at look at the three corpora of US English texts, a set of internet blogs posts, a set of internet news articles, and a set of twitter messages.
 en_US.news.txt
 en_blogs.txt
 en_US.twitter.txt
@@ -50,70 +48,54 @@ We collect the following forms of information:
 The data is available as a [ZIP compressed archive](http://en.wikipedia.org/wiki/Zip_(file_format)), which is  downloadable from [here](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip).
 
 ```{r}
-# setwd()
-# # specify the source and destination of the download
-# destination_file <- "Coursera-SwiftKey.zip"
-# source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
-# 
-# # execute the download
-# download.file(source_file, destination_file)
-# # extract the files from the zip file
-# unzip(destination_file)
+setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
+# specify the source and destination of the download
+destination_file <- "Coursera-SwiftKey.zip"
+source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+
+# execute the download
+download.file(source_file, destination_file)
+# extract the files from the zip file
+unzip(destination_file)
 ```
 
 Inspect the unzipped files
 
 ```{r}
-# find out which files where unzipped
-# unzip(destination_file, list = TRUE )
-```
-
-
-
-```{r}
+#find out which files where unzipped
+unzip(destination_file, list = TRUE )
 # inspect the data
-# list.files("final")
-# list.files("final/en_US")
+list.files("final")
+list.files("final/en_US")
 ```
-
-
 The corpora are contained in three separate plain-text files,
-out of which one is binary
-Import the files as follows.
+We caniImport the files as follows.
 
 ```{r}
 # import the blogs and twitter datasets in text mode
 blogs <- readLines("final/en_US/en_US.blogs.txt", encoding="UTF-8")
 twitter <- readLines("final/en_US/en_US.twitter.txt", encoding="UTF-8")
+news <- readLines("final/en_US/en_US.news.txt", encoding="UTF-8")
 ```
 
 
 ```{r}
 # import the news dataset in binary mode
-con <- file("final/en_US/en_US.news.txt", open="rb")
-news <- readLines(con, encoding="UTF-8")
-close(con)
-rm(con)
+# con <- file("final/en_US/en_US.news.txt", open="rb")
+# news <- readLines(con, encoding="UTF-8")
+# close(con)
+# rm(con)
 ```
 
-
 # Basic Dimsions of the data sources
-
 Determine the size of the files (presented in MegaBytes / MBs).
 
 ```{r}
 # file size (in MegaBytes/MB)
 paste0("File en_US.blogs.txt is ",round(file.info("final/en_US/en_US.blogs.txt")$size   / 1024^2,1), " Megabytes")
-```
 
-
-
-```{r}
 paste0("File en_US.news.txt is ",round(file.info("final/en_US/en_US.news.txt")$size   / 1024^2,1), " Megabytes")
-```
 
-
-```{r}
 paste0("File en_US.blogs.txt is ",round(file.info("final/en_US/en_US.twitter.txt")$size   / 1024^2,1), " Megabytes")
 ```
 
@@ -128,9 +110,7 @@ stri_stats_general( news )
 stri_stats_general( twitter )
 ```
 
-
-
-Next we count the words per item (line). We summarise the distibution of these counts per corpus, using summary statistics and a distibution plot. we start with the **blogs** corpus.
+Next we count the words per item (line). We summarise the distibution of these counts per corpus, using summary statistics and a distibution plot. 
 
 ```{r}
 words_blogs   <- stri_count_words(blogs)
@@ -155,8 +135,6 @@ rm(list=ls())
 
 #Data Capstone Exploration, more detailed questions
 
-
-
 1. Clean the data from punctuation, stopwords and numbers
 2. what are the distributions of word frequencies?
 3. What are the frequencies of 2-grams and 3-grams in the dataset?
@@ -164,21 +142,13 @@ rm(list=ls())
 5. How do you evaluate how many of the words come from foreign languages?
 6. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
 
-
-
 ```{r}
 
 # load dataset
-
-
 #Create some sample files to work wiht more quickly
-library(LaF)
-
-blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 100, nlines = NULL)
-
-news1<-sample_lines("final/en_US/en_US.news.txt", 100, nlines = NULL)
-
-twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 100, nlines = NULL)
+blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 1000, nlines = NULL)
+news1<-sample_lines("final/en_US/en_US.news.txt", 1000, nlines = NULL)
+twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 1000, nlines = NULL)
 
 if(!(dir.exists("final/en_US/sample"))){
     dir.create("final/en_US/sample")
@@ -242,7 +212,20 @@ corpus <- tm_map(corpus, stripWhitespace)
 2. what are the distributions of word frequencies?
 
 ```{r}
+#Single Words
+words1<-dfm(myCorpus, ngrams = 1,verbose = TRUE, toLower = TRUE,
+  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) 
+words1<-topfeatures(words1, 30)
+words1<-data.frame(cbind(names(words1),words1),stringsAsFactors =FALSE)
+rownames(words1)<-NULL
+colnames(words1)<-c("word","freq")
+words1$freq<-as.numeric(words1$freq)
 
+ggplot(words1, aes(reorder(word,freq), freq)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  xlab("Words") + ylab("Frequency") +
+  ggtitle("Most frequent words")
 
 ```
 
@@ -255,7 +238,7 @@ corpus <- tm_map(corpus, stripWhitespace)
 rm(list=ls())
 
 #Thought I would try out the quantida package to see how it goes
-library(quanteda)
+
 folder.dataset.english <- 'final/en_US/sample'
 
 # vector of full filenames for a recursive structure
@@ -350,7 +333,6 @@ if(sm>=target1)break
 paste0("Number of unique words needed to cover 90% of all words = ",i)
 ```
 
-
 #How do you evaluate how many of the words come from foreign languages?
 
 You could use and english dictionary to only include words from that language, similarly for other langauges
@@ -358,7 +340,3 @@ You could use and english dictionary to only include words from that language, s
 #Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using #a smaller number of words in the dictionary to cover the same number of phrases?
 
 Can correct common typos, misspellings and abreviations, could also use word stemming to reduce the number of unique words
-
-
-# Conclusions
-
