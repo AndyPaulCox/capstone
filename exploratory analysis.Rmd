@@ -53,10 +53,10 @@ setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
 destination_file <- "Coursera-SwiftKey.zip"
 source_file <- "http://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
 
-# execute the download
-download.file(source_file, destination_file)
-# extract the files from the zip file
-unzip(destination_file)
+# # execute the download
+# download.file(source_file, destination_file)
+# # extract the files from the zip file
+# unzip(destination_file)
 ```
 
 Inspect the unzipped files
@@ -209,29 +209,7 @@ corpus <- tm_map(corpus, removeWords, profanity.filter)
 corpus <- tm_map(corpus, stripWhitespace)
 ```
 
-2. what are the distributions of word frequencies?
-
-```{r}
-#Single Words
-words1<-dfm(myCorpus, ngrams = 1,verbose = TRUE, toLower = TRUE,
-  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE,ignoredFeatures=stopwords("english")) 
-words1<-topfeatures(words1, 30)
-words1<-data.frame(cbind(names(words1),words1),stringsAsFactors =FALSE)
-rownames(words1)<-NULL
-colnames(words1)<-c("word","freq")
-words1$freq<-as.numeric(words1$freq)
-
-ggplot(words1, aes(reorder(word,freq), freq)) +
-  geom_bar(stat = "identity") + coord_flip() +
-  xlab("Words") + ylab("Frequency") +
-  ggtitle("Most frequent words")
-
-```
-
-
-
-3. What are the frequencies of 2-grams and 3-grams in the dataset?
+3. What are the frequencies of siblge, bigrams and trigrams in the dataset?
 
 ```{r}
 #clean up
@@ -320,7 +298,7 @@ sm<-sum(allwds_freq[1:i])
 if(sm>=target1)break
 }
 
-paste0("Number of unique words needed to cover 90% of all words = ",i)
+paste0("Number of unique words needed to cover 50% of all words = ",i)
 
 #Now for 90% of all word instances
 target1<-ceiling(sum(allwds_freq)*0.9)
