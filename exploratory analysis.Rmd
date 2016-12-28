@@ -146,9 +146,9 @@ rm(list=ls())
 
 # load dataset
 #Create some sample files to work wiht more quickly
-blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 1000, nlines = NULL)
-news1<-sample_lines("final/en_US/en_US.news.txt", 1000, nlines = NULL)
-twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 1000, nlines = NULL)
+blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 10000, nlines = NULL)
+news1<-sample_lines("final/en_US/en_US.news.txt", 10000, nlines = NULL)
+twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 10000, nlines = NULL)
 
 if(!(dir.exists("final/en_US/sample"))){
     dir.create("final/en_US/sample")
