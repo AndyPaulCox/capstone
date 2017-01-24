@@ -32,8 +32,8 @@ shinyUI(fluidPage(
     # Show a plot of the generated distribution
     mainPanel(
       br(),
-      h2(textOutput("sentence"), align="center"),
-      h1(textOutput("predicted"), align="center", style="color:blue"),
+      h3(textOutput("sentence"), align="center"),
+      h3(textOutput("predicted"), align="center", style="color:blue"),
       hr(),
       h3("Top 5 Possibilities:", align="center"),
       div(tableOutput("alts"), align="center")

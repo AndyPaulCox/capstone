@@ -1,0 +1,44 @@
+
+The Data Science Capstone: Text Prediction
+========================================================
+author: Andrew Cox
+date: 24th January 2017
+autosize: true
+An application to predict the next word given a text example
+
+
+![Johns Hopkins Logo](JohnsHopkins.jpg)
+
+Background
+========================================================
+This application was developed for the Johns Hopkins Data Science Specialisation. The object is to construct an algorithm to predict the next word from specific text input. The project uses text files from from a corpus called HC Corpora <https://corpora.heliohost.org>. Conistiing of three large text files news items, twitter messages and blogs.
+
+
+- Data are explored thouroughly, see the report avilable [here](https://github.com/AndyPaulCox/capstone/blob/master/exploratory_analysis.html).
+- In the data modelling phase frequency tables of 1,2,3 and 4-grams were constructed
+- In the prediction phase, the algorithms used a 'stupid backoff' approach to search the ngram tables 
+- The algorithm is presented as a shiny app
+<br>
+<br>
+**Resources**<br>
+<br>
+For the github repo visit  <https://github.com/AndyPaulCox/capstone.git><br>
+For the Shiny app visit    <  >.<br>
+
+How to use the Shiny App
+========================================================
+- Enter text into the input box
+- Press the Predict button (or hit enter)
+- The most likely word is shown on the right
+- The most ranked probable words are shown underneath
+
+![App Screenshot](Text_Predict_App.png)
+
+Futher Development
+========================================================
+
+A number of things can be done to develop and improve the app<br>
+<br>
+- Spell correction of the original corpus
+- Speed up the prediction algorithm
+- Apply more sophisticated methods for predicting instances not in the ngram tables
