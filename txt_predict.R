@@ -26,7 +26,6 @@ text_prediction<-function(v.txt1){
   
   #if number of wds is 3
   #First search qgrams
-  #d.qgrams<-readRDS("comp_qgrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==3){
     d.matches<-d.qgrams[grep(v.txt0,d.qgrams$first),]
     if(nrow(d.matches)>0){
@@ -43,8 +42,6 @@ text_prediction<-function(v.txt1){
   }
 
   #Case for trigrams
-  #First search trigrams
-  #d.trigrams<-readRDS("comp_trigrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==2){
     d.matches<-d.trigrams[grep(v.txt0,d.trigrams$first),]
     if(nrow(d.matches)>0){
@@ -60,8 +57,6 @@ text_prediction<-function(v.txt1){
   }
 
   #Case for bigrams
-  #First search bigrams
-  #d.bigrams<-readRDS("comp_bigrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==1){
     d.matches<-d.bigrams[grep(v.txt0,d.bigrams$first),]
     if(nrow(d.matches)>0){
@@ -73,7 +68,6 @@ text_prediction<-function(v.txt1){
   }
 
   #if not found search for probability as a unigram
-  #d.unigrams<-readRDS("comp_unigrams.rds")
   if(nrow(d.matches)==0 & length(unlist(strsplit(v.txt0,"_")))==1){
     d.matches<-d.unigrams[grep(v.txt0,d.unigrams$names),]
     if(nrow(d.matches)>0){
@@ -94,10 +88,10 @@ colnames(predicted)<-NULL
  return(predicted[,1])
 }
 
-setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
 
-#Profile the algorithm
-Rprof(tmp <- tempfile())
-y<-text_prediction("what is the point of this")
-Rprof()
-summaryRprof(tmp)
+# setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
+# #Profile the algorithm
+# Rprof(tmp <- tempfile())
+# y<-text_prediction("what is the point of this")
+# Rprof()
+# summaryRprof(tmp)
