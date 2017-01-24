@@ -83,7 +83,7 @@ Inspect the unzipped files
 
 ```{r}
 #find out which files where unzipped
-unzip(destination_file, list = TRUE )
+#unzip(destination_file, list = TRUE )
 # inspect the data
 list.files("final")
 list.files("final/en_US")
@@ -341,6 +341,6 @@ paste0("Number of unique words needed to cover 90% of all words = ",i)
 
 You could use and english dictionary to only include words from that language, similarly for other langauges
 
-####6. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using #a smaller number of words in the dictionary to cover the same number of phrases?
+####6. Can you think of a way to increase the coverage -- identifying words that may not be in the corpora or using a smaller number of words in the dictionary to cover the same number of phrases?
 
 Can correct common typos, misspellings and abreviations, could also use word stemming to reduce the number of unique words
