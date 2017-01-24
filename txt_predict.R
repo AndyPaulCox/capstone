@@ -1,13 +1,14 @@
 
 #clean up workspace
 rm(list=ls())
+setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams")
+d.qgrams<-readRDS("comp_qgrams.rds")
+d.trigrams<-readRDS("comp_trigrams.rds")
+d.bigrams<-readRDS("comp_bigrams.rds")
+d.unigrams<-readRDS("comp_unigrams.rds")
 text_prediction<-function(v.txt1){
 #v.txt1<-"what is the point of this"#text to predict completion
 
-  setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams")
-  #d.unigrams<-readRDS("dictionaries/compiled_ngrams/comp_unigrams.rds")
-  
-  
   #Clean_text
   v.txt0<-tolower(v.txt1)
   v.txt0<-gsub("\\s+"," ",v.txt0)#remove excess whitespace
@@ -25,7 +26,7 @@ text_prediction<-function(v.txt1){
   
   #if number of wds is 3
   #First search qgrams
-  d.qgrams<-readRDS("comp_qgrams.rds")
+  #d.qgrams<-readRDS("comp_qgrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==3){
     d.matches<-d.qgrams[grep(v.txt0,d.qgrams$first),]
     if(nrow(d.matches)>0){
@@ -40,10 +41,10 @@ text_prediction<-function(v.txt1){
       v.txt0<-substr(v.txt0,x+1,nchar(v.txt0))
     }
   }
-  rm(d.qgrams)
+
   #Case for trigrams
   #First search trigrams
-  d.trigrams<-readRDS("comp_trigrams.rds")
+  #d.trigrams<-readRDS("comp_trigrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==2){
     d.matches<-d.trigrams[grep(v.txt0,d.trigrams$first),]
     if(nrow(d.matches)>0){
@@ -57,11 +58,10 @@ text_prediction<-function(v.txt1){
       v.txt0<-substr(v.txt0,x+1,nchar(v.txt0))
     }
   }
-  rm(d.trigrams)
-  
+
   #Case for bigrams
   #First search bigrams
-  d.bigrams<-readRDS("comp_bigrams.rds")
+  #d.bigrams<-readRDS("comp_bigrams.rds")
   if(length(unlist(strsplit(v.txt0,"_")))==1){
     d.matches<-d.bigrams[grep(v.txt0,d.bigrams$first),]
     if(nrow(d.matches)>0){
@@ -71,9 +71,9 @@ text_prediction<-function(v.txt1){
       pred.all<-pred.all[order(pred.all$p,decreasing=T),]
     }
   }
-  rm(d.bigrams)
+
   #if not found search for probability as a unigram
-  d.unigrams<-readRDS("comp_unigrams.rds")
+  #d.unigrams<-readRDS("comp_unigrams.rds")
   if(nrow(d.matches)==0 & length(unlist(strsplit(v.txt0,"_")))==1){
     d.matches<-d.unigrams[grep(v.txt0,d.unigrams$names),]
     if(nrow(d.matches)>0){
@@ -86,9 +86,18 @@ text_prediction<-function(v.txt1){
       pred.all<-data.frame(match.wds="DUNNO!",p=0.0,stringsAsFactors=FALSE)
     }
   }
-rm(d.unigrams)
+
 pred.all$p<-as.numeric(pred.all$p)
 predicted<-head(pred.all)
-#head(pred.all)
- return(predicted)
+predicted<-predicted[order(predicted$p,decreasing=TRUE),]
+colnames(predicted)<-NULL
+ return(predicted[,1])
 }
+
+setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
+
+#Profile the algorithm
+Rprof(tmp <- tempfile())
+y<-text_prediction("what is the point of this")
+Rprof()
+summaryRprof(tmp)

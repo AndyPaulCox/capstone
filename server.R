@@ -7,7 +7,7 @@ source('txt_predict.R')
 shinyServer(function(input, output) {
   # input$text and input$action are available
   # output$sentence and output$predicted should be made available
-  db <- dbConnect(SQLite(), dbname="train.db")
+  #db <- dbConnect(SQLite(), dbname="train.db")
   dbout <- reactive({text_prediction(input$text)})
   
   output$sentence <- renderText({input$text})
@@ -18,5 +18,5 @@ shinyServer(function(input, output) {
     } else {
       return(unlist(out)[1])
     }})
-  output$alts <- renderTable({dbout()})
+  output$alts <- renderTable({dbout()},colnames=FALSE)
 })
