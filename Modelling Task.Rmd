@@ -10,33 +10,21 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 ##Details about the approach
 
-The basis of the apporach was inspired by the publication
-"Natural Language Processing: A Model to Predict a Sequence of Words"
-by Gerald R Gendron et al.  MODSIM Wolrd 2015
+In building the models and the prediction algorithm the following approach will be adopted
 
-Taken from that publication the following approach will be adopted
+1. The application not be case-sensitive.
+2. Stopwords will not be removed
+3. Stemming will not be used
+4. Punctuation will not be used, although it is noted that the period may be useful to denote end of sentence for later development
+5. Parts of speech will not be used.
+6. Numbers will not be used
+7. All words will be retained 
+8. Additonal whitespace will be removed and not used
+9. The coprus will not be spell corrected
 
-1. Case: corpora words will not be case-sensitive.
-2. Stopwords will not be removed, unlike classification and clustering applications, all words will be included in the
-model.
-
-3. Wordform: stemming will not be used
-
-4. Punctuation: Initally punctution will not be used,  but will be consideredas a development of the model. 
-Jurafsky and Martin treat punctuation as a word and count it as a word. Given the nature of
-the problem, which is not trying to generate full sentences but only predict a next word, punctuation will be
-treated slightly differently in the initial model. End of sentence punctuation (e.g., ? ' ! . ) will be used to
-include end-of-sentence tags, as the intuition is they have implications for word prediction.
-
-5. Parts of Speech: twill not be used.
-
-6. Numbers: will not be used
-
-7. Sparse Words: all words will be retained. 
-
-8. Whitespace: Will be removed and not used
-
-```{r}
+In bulding the model of the corpora, we will produce tables of 1,2,3 and 4 grams. The data are large so the ngram tables will be built by working on chunks of text data at a time, and with a final step of combining the n-grams to a single n-gram dictionary. One dictionary per n-gram.
+The first step is to clean the workspace and the load required packages
+```{r, eval=FALSE}
 #clean up workspace
 rm(list=ls())
 
@@ -54,99 +42,262 @@ library(LaF)
 #Trying out the quanitda package
 library(quanteda)
 
-
 ```
 
 ##Load the datasets
-```{r}
+Loading the full datasets,as they are large we will process them in cunks of 100,000 lines.   The code below takes a long time to run, so it is not evaluated in this markdown document
+```{r, eval=FALSE}
+
+##Load the datasets
+
+#########################
+
 setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git")
+folder.dataset.english <- 'final/en_US'
+corpus <- VCorpus(DirSource(directory=folder.dataset.english, encoding = "UTF-8",recursive=FALSE),
+                  readerControl = list(language = "en"))
+chunk.size<-100000
 
-#Create some sample files to work wiht more quickly
-blogs1<-sample_lines("final/en_US/en_US.blogs.txt", 2000, nlines = NULL)
-news1<-sample_lines("final/en_US/en_US.news.txt", 2000, nlines = NULL)
-twitter1<-sample_lines("final/en_US/en_US.twitter.txt", 2000, nlines = NULL)
 
-if(!(dir.exists("final/en_US/sample"))){
-    dir.create("final/en_US/sample")
+for(t in 1:3){
+  l=1
+  h=chunk.size
+  stp=0
+  chnk.n<-1
+  corp.size<-length(corpus[[t]]$content)
 
-    write(blogs1, file = "final/en_US/sample/en_US.blogs_sample.txt",append = FALSE, sep = "/t")
-    write(news1, file = "final/en_US/sample/en_US.news_sample.txt",append = FALSE, sep = "/t")
-    write(twitter1, file = "final/en_US/sample/en_US.twitter_sample.txt",append = FALSE, sep = "/t")
-    rm(list=c("blogs1","news1","twitter1"))
+  repeat{  
+    if(stp==2)break
+    corpus.chunk<-corpus[[t]]$content[l:h]
+    l<-h+1
+    h<-h+chunk.size
+    chnk.n<-chnk.n+1
+    ####Processing code in here
+    myCorpus <- corpus(x=corpus.chunk)  # build the corpus
+
+    #Unigrams
+    wds<-dfm(myCorpus, ngrams = 1, verbose = TRUE, toLower = TRUE,
+             removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+             removeTwitter = TRUE, stem = FALSE)
+    allwds_freq<-sort(colSums(wds),decreasing=T)
+
+    wds<-data.frame(names=names(allwds_freq),freq=allwds_freq,stringsAsFactors =FALSE)
+    rownames(wds)<-NULL
+    uni.freq.freq<-table(wds$freq)
+    wds<-wds[wds$freq>1,]
+    saveRDS(wds,paste0("dictionaries/unigrams_",t,chnk.n,".rds"))
+    rm(wds)
+    
+    
+    #bigrams
+    bigrams<-dfm(myCorpus, ngrams = 2,verbose = TRUE, toLower = TRUE,
+                 removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
+                 removeTwitter = TRUE, stem = FALSE)
+    bigrams_freq<-sort(colSums(bigrams),decreasing=T)
+    bigrams<-data.frame(names=names(bigrams_freq),freq=bigrams_freq,stringsAsFactors =FALSE)
+
+    rownames(bigrams)<-NULL
+    bigrams.freq.freq<-table(bigrams$freq)
+    bigrams<-bigrams[bigrams$freq>1,]
+    saveRDS(bigrams,paste0("dictionaries/bigrams_",t,chnk.n,".rds"))
+    rm(bigrams)
+    
+    
+    #trigrams
+    trigrams<-dfm(myCorpus, ngrams = 3,verbose = TRUE, toLower = TRUE,removeNumbers = TRUE, removePunct = TRUE,removeSeparators = TRUE,removeTwitter = TRUE, stem = FALSE)
+
+    trigrams_freq<-sort(colSums(trigrams),decreasing=T)
+    trigrams<-data.frame(names=names(trigrams_freq),freq=trigrams_freq,stringsAsFactors =FALSE)
+
+    rownames(trigrams)<-NULL
+    trigrams<-trigrams[trigrams$freq>1,]
+    saveRDS(trigrams,paste0("dictionaries/trigrams_",t,chnk.n,".rds"))
+    rm(trigrams)
+    
+    #qgrams
+    qgrams<-dfm(myCorpus, ngrams = 4,verbose = TRUE, toLower = TRUE,
+                removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,removeTwitter = TRUE, stem = FALSE)
+    qgrams_freq<-sort(colSums(qgrams),decreasing=T)
+    qgrams<-data.frame(names=names(qgrams_freq),freq=qgrams_freq,stringsAsFactors =FALSE)
+
+    rownames(qgrams)<-NULL
+    qgrams<-qgrams[qgrams$freq>1,]
+    saveRDS(qgrams,paste0("dictionaries/qgrams_",t,chnk.n,".rds"))
+    rm(qgrams)
+    
+    if(h>corp.size){
+      h<-corp.size
+      stp<-stp+1}
+  }
+}
+```
+###Combining the chubked ngram tables
+Having created the ngram tables, it is now necessary to combine them. During this process the ngrams in the 'names' column needs some cleaning up, there are a number of characters we are not interested in still remaining, (some chinese cahracters for example). We will further clean, to only include ngrams containing the letters of the english alphabet, and further remove punctuation (as I found some still remaining after previous cleaning steps), numbers and lower casing for good measure. Having done this we will then need to combine rows where the ngrams are now identical after cleaning. In order to fit into memory we remove ngrams with only single mention. The next step is to combine the data for the chunked ngram tables to produce a single table per ngram. In removing puntuation from the ngram names field we need to be careful not to remove the underscore separator that denotes the spaces between words. We therefore remove all punctuation excpept the underscore "_"
+
+```{r, eval=FALSE}
+rm(list=ls())
+#########################
+
+#Function for cleaning the ngrams names
+clean_txt<-function(temp){
+  n<-numeric()
+  temp$names<-tolower(temp$names)
+  for(l in letters)n<-unique(c(n,grep(l,temp$names)))
+  temp<-temp[sort(n),]
+  #remove everything except underscores (needed to sep the words)
+  temp$names<-gsub("[^[:^punct:]_]", "", temp$names, perl = TRUE)
+  temp$names<-gsub("[[:digit:]]", "", temp$names)
+  return(temp)
+}
+```
+
+###Start with the unigrams
+```{r, eval=FALSE}
+setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries")
+
+fls1<-sort(dir())
+#Split into different n_grams
+fls_uni<-fls1[grep("unigrams",fls1)]
+fls_bi<-fls1[grep("bigrams",fls1)]
+fls_tri<-fls1[grep("trigrams",fls1)]
+fls_q<-fls1[grep("qgrams",fls1)]
+
+for(i in fls_uni){
+  if(i==fls_uni[1]){
+    temp<-readRDS(i)
+    
+  }
+  if(i!=fls_uni[1]){
+    temp2<-readRDS(i)
+    #temp2<-clean_txt(temp2)
+    temp<-merge(temp,temp2,by="names",sort=TRUE,all=TRUE)
+    rm(temp2)
+    temp$freq.x[is.na(temp$freq.x)]<-0
+    temp$freq.y[is.na(temp$freq.y)]<-0
+    temp$freq.x<-as.numeric(temp$freq.x)+as.numeric(temp$freq.y)
+    temp<-temp[,c(1,2)]
+    colnames(temp)<-c("names","freq")
+    print(round(object.size(temp)/1000000,2))
+  }
 }
 
-folder.dataset.english <- 'final/en_US/sample'
-corpus <- VCorpus(DirSource(directory=folder.dataset.english, encoding = "UTF-8"),  readerControl = list(language = "en"))
+tempx<-clean_txt(temp)
+temp3<-aggregate(freq~names,data=tempx,FUN=sum)
+
+saveRDS(temp3,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_unigrams.rds")
+```
+
+###Processing the bigrams
+```{r, eval=FALSE}
+##########
+
+
+for(i in fls_bi){
+  if(i==fls_bi[1]){
+    temp<-readRDS(i)
+    
+  }
+  if(i!=fls_bi[1]){
+    temp2<-readRDS(i)
+    #temp2<-clean_txt(temp2)
+    temp<-merge(temp,temp2,by="names",sort=TRUE,all=TRUE)
+    rm(temp2)
+    temp$freq.x[is.na(temp$freq.x)]<-0
+    temp$freq.y[is.na(temp$freq.y)]<-0
+    temp$freq.x<-as.numeric(temp$freq.x)+as.numeric(temp$freq.y)
+    temp<-temp[,c(1,2)]
+    colnames(temp)<-c("names","freq")
+    print(round(object.size(temp)/1000000,2))
+  }
+}
+
+tempx<-clean_txt(temp)
+temp3<-aggregate(freq~names,data=tempx,FUN=sum)
+
+saveRDS(temp3,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_bigrams.rds")
+```
+
+###Processing the trigrams
+```{r, eval=FALSE}
+##########
+for(i in fls_tri){
+  if(i==fls_tri[1]){
+    temp<-readRDS(i)
+    
+  }
+  if(i!=fls_tri[1]){
+    temp2<-readRDS(i)
+    #temp2<-clean_txt(temp2)
+    temp<-merge(temp,temp2,by="names",sort=TRUE,all=TRUE)
+    rm(temp2)
+    temp$freq.x[is.na(temp$freq.x)]<-0
+    temp$freq.y[is.na(temp$freq.y)]<-0
+    temp$freq.x<-as.numeric(temp$freq.x)+as.numeric(temp$freq.y)
+    temp<-temp[,c(1,2)]
+    colnames(temp)<-c("names","freq")
+    print(round(object.size(temp)/1000000,2))
+  }
+}
+
+tempx<-clean_txt(temp)
+temp3<-aggregate(freq~names,data=tempx,FUN=sum)
+
+saveRDS(temp3,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_trigrams.rds")
+```
+
+###Finally the 4-grams (qgrams)
+```{r, eval=FALSE}
+##########
+for(i in fls_q){
+  if(i==fls_q[1]){
+    temp<-readRDS(i)
+    
+  }
+  if(i!=fls_q[1]){
+    temp2<-readRDS(i)
+    #temp2<-clean_txt(temp2)
+    temp<-merge(temp,temp2,by="names",sort=TRUE,all=TRUE)
+    rm(temp2)
+    temp$freq.x[is.na(temp$freq.x)]<-0
+    temp$freq.y[is.na(temp$freq.y)]<-0
+    temp$freq.x<-as.numeric(temp$freq.x)+as.numeric(temp$freq.y)
+    temp<-temp[,c(1,2)]
+    colnames(temp)<-c("names","freq")
+    print(round(object.size(temp)/1000000,2))
+  }
+}
+
+tempx<-clean_txt(temp)
+temp3<-aggregate(freq~names,data=tempx,FUN=sum)
+
+saveRDS(temp3,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_qgrams.rds")
+```
+
+###Adding additional columns for the back-off algorithm
+We will be taking the 'Back-off' approach in our text prediction algorithm. In order for that to work we need to create some extra data columns.  The first n-1 words in the 'first' column and the last word of the ngram in the last column. So a 4-gram "how now brown cow" would be divded into "how now brown" as the first part and "cow" as the "last" part
+
+```{r, eval=FALSE}
+###############add first and last elements to the ngrams dictionaries
+
+setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams")
+
+
+temp<-readRDS("comp_bigrams.rds")
+temp$first<- sapply(strsplit(temp$names, "_"), "[[", 1)
+temp$last<-  sapply(strsplit(temp$names, "_"), "[[", 2)
+saveRDS(temp,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_bigrams.rds")
+
+
+temp<-readRDS("comp_trigrams.rds")
+temp$first<-paste(sapply(strsplit(temp$names, "_"), "[[", 1),sapply(strsplit(temp$names, "_"), "[[", 2),sep="_")
+temp$last<-sapply(strsplit(temp$names, "_"), "[[", 3)
+saveRDS(temp,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_trigrams.rds")
+
+temp<-readRDS("comp_qgrams.rds")
+
+temp$first<-paste(sapply(strsplit(temp$names, "_"), "[[", 1),sapply(strsplit(temp$names, "_"), "[[", 2),sapply(strsplit(temp$names, "_"), "[[", 3),sep="_")
+temp$last<-sapply(strsplit(temp$names, "_"), "[[", 4)
+saveRDS(temp,"/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams/comp_qgrams.rds")
 
 ```
 
-
-
-```{r}
-
-
-#Thought I would try out the quantida package to see how it goes
-
-folder.dataset.english <- 'final/en_US/sample'
-
-# vector of full filenames for a recursive structure
-x<-textfile(list.files(path = folder.dataset.english, pattern = "\\.txt$", 
-                    full.names = TRUE, recursive = TRUE))
-
-myCorpus <- corpus(x=x)  # build the corpus
-myCorpus<-toLower(corpus, keepAcronyms = TRUE)
-summary(myCorpus)
-
-
-#Most frequenct words
-wds<-dfm(myCorpus, ngrams = 1, verbose = TRUE, toLower = TRUE,
-  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE)
-allwds_freq<-sort(colSums(wds),decreasing=T)
-
-wds<-data.frame(names=names(allwds_freq),freq=allwds_freq,stringsAsFactors =FALSE)
-rownames(wds)<-NULL
-uni.freq.freq<-table(wds$freq)
-saveRDS(wds,"dictionaries/unigrams.rds")
-#bigrams
-bigrams<-dfm(myCorpus, ngrams = 2,verbose = TRUE, toLower = TRUE,
-  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE) 
-bigrams_freq<-sort(colSums(bigrams),decreasing=T)
-bigrams<-data.frame(names=names(bigrams_freq),freq=bigrams_freq,stringsAsFactors =FALSE)
-bigrams$first<- sapply(strsplit(bigrams$names, "_"), "[[", 1)
-bigrams$last<-  sapply(strsplit(bigrams$names, "_"), "[[", 2)
-rownames(bigrams)<-NULL
-bigrams.freq.freq<-table(bigrams$freq)
-saveRDS(bigrams,"dictionaries/bigrams.rds")
-
-#trigrams
-trigrams<-dfm(myCorpus, ngrams = 3,verbose = TRUE, toLower = TRUE,
-  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE) 
-trigrams_freq<-sort(colSums(trigrams),decreasing=T)
-trigrams<-data.frame(names=names(trigrams_freq),freq=trigrams_freq,stringsAsFactors =FALSE)
-
-trigrams$first<-paste(sapply(strsplit(trigrams$names, "_"), "[[", 1),sapply(strsplit(trigrams$names, "_"), "[[", 2),sep="_")
-trigrams$last<-sapply(strsplit(trigrams$names, "_"), "[[", 3)
-rownames(trigrams)<-NULL
-saveRDS(trigrams,"dictionaries/trigrams.rds")
-#qgrams
-qgrams<-dfm(myCorpus, ngrams = 4,verbose = TRUE, toLower = TRUE,
-  removeNumbers = TRUE, removePunct = TRUE, removeSeparators = TRUE,
-  removeTwitter = TRUE, stem = FALSE) 
-qgrams_freq<-sort(colSums(qgrams),decreasing=T)
-qgrams<-data.frame(names=names(qgrams_freq),freq=qgrams_freq,stringsAsFactors =FALSE)
-
-qgrams$first<-paste(sapply(strsplit(qgrams$names, "_"), "[[", 1),sapply(strsplit(qgrams$names, "_"), "[[", 2),sapply(strsplit(qgrams$names, "_"), "[[", 3),sep="_")
-qgrams$last<-sapply(strsplit(qgrams$names, "_"), "[[", 4)
-rownames(qgrams)<-NULL
-saveRDS(qgrams,"dictionaries/qgrams.rds")
-
-
-```
-
-```{r}
-d.unigrams<-readRDS("dictionaries/qgrams.rds")
-
-```
