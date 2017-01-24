@@ -2,10 +2,12 @@
 #clean up workspace
 rm(list=ls())
 setwd("/Users/AndyC/Dropbox/rdata/cousera/capstone_git/dictionaries/compiled_ngrams")
+#Load the ditionaries here casue it speeds up use of the algorithm
 d.qgrams<-readRDS("comp_qgrams.rds")
 d.trigrams<-readRDS("comp_trigrams.rds")
 d.bigrams<-readRDS("comp_bigrams.rds")
 d.unigrams<-readRDS("comp_unigrams.rds")
+
 text_prediction<-function(v.txt1){
 #v.txt1<-"what is the point of this"#text to predict completion
 
